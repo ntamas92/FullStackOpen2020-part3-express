@@ -1,113 +1,102 @@
+require("dotenv").config();
 const express = require("express");
-const { response } = require("express");
-const morgan = require("morgan")
-const cors = require('cors');
+const morgan = require("morgan");
+const cors = require("cors");
+const PhonebookEntry = require("./models/phonebookEntry");
 
 const app = express();
 
-app.use(express.static('build'))
+app.use(express.static("build"));
 app.use(express.json());
 app.use(cors());
 
-app.use(morgan(function (tokens, req, res) {
+app.use(
+  morgan(function (tokens, req, res) {
     return [
       tokens.method(req, res),
       tokens.url(req, res),
       tokens.status(req, res),
-      tokens.res(req, res, 'content-length'), '-',
-      tokens['response-time'](req, res), 'ms',
-      JSON.stringify(req.body)
-    ].join(' ')
-  }))
+      tokens.res(req, res, "content-length"),
+      "-",
+      tokens["response-time"](req, res),
+      "ms",
+      JSON.stringify(req.body),
+    ].join(" ");
+  })
+);
 
-app.get('/api/persons', (req, res) => {
-    res.json(phonebookEntries)
+app.get("/api/persons", (req, res) => {
+  PhonebookEntry.find({})
+    .then((result) => res.json(result))
+    .catch((error) => next(error));
 });
 
-app.get('/api/persons/:id', (req, res) => {
-    const entry = phonebookEntries.find(x => x.id == req.params.id);
-    
-    if(entry) {
-        res.json(entry);
-        return;
-    }
+app.get("/api/persons/:id", (req, res) => {
+  PhonebookEntry.findById(req.params.id)
+    .then((result) => res.json(result))
+    .catch((error) => next(error));
+});
 
-    res.status(404).end();
-})
+app.delete("/api/persons/:id", (req, res) => {
+  console.log(req.params.id);
+  PhonebookEntry.findByIdAndRemove(req.params.id)
+    .then((x) => {
+      console.log(x);
+      res.status(204).end();
+    })
+    .catch((error) => next(error));
+});
 
-app.delete('/api/persons/:id', (req, res) => {
-    const entry = phonebookEntries.find(x => x.id == req.params.id);
-    
-    if(entry) {
-        phonebookEntries = phonebookEntries.filter(x => x.id != entry.id);
+app.post("/api/persons", (req, res) => {
+  const body = req.body;
 
-        res.status(204).end();
-        return;
-    }
+  if (!body.name || !body.number) {
+    return res.status(400).json({ error: "Name or number is missing." });
+  }
 
-    res.status(404).end();
-})
+  //TODO: Implement here the check for duplicate names
+  //   if (almafaToDelete.find((x) => x.name === body.name) !== undefined) {
+  //     return res.status(400).json({ error: "An entry is already stored for this name in the phonebook." });
+  //   }
 
-app.post('/api/persons', (req, res) => {
-    const body = req.body;
+  const newEntry = new PhonebookEntry({
+    name: body.name,
+    number: body.number,
+  });
 
-    if(!body.name || !body.number){
-        return res.status(400).json({ error: 'Name or number is missing.' });
-    }
+  newEntry
+    .save()
+    .then((savedEntry) => res.json(savedEntry))
+    .catch((error) => next(error));
+});
 
-    if(phonebookEntries.find(x => x.name === body.name) !== undefined){
-        return res.status(400).json({error: 'An entry is already stored for this name in the phonebook.'})
-    }
+app.put("/api/persons/:id", (req, res) => {
+  const body = req.body;
 
-    const newEntry = {
-        id: generateUniqueId(),
-        name: body.name,
-        number: body.number,
-    }
+  const updatedEntry = {
+    number: body.number,
+  };
 
-    phonebookEntries = phonebookEntries.concat(newEntry)
+  PhonebookEntry.findByIdAndUpdate(req.params.id, updatedEntry, { new: true })
+    .then((updatedNote) => res.json(updatedNote))
+    .catch((error) => next(error));
+});
 
-    res.json(newEntry)
-})
+app.get("/api/info", (req, res) => {
+  PhonebookEntry.find({}).then((entries) => {
+    res.send(`<p>Phonebook has info for ${entries.length} people.</p><p>${new Date()}}</p>`);
+  });
+});
 
-app.get('/api/info', (req, res) => {
-    res.send(`<p>Phonebook has info for ${phonebookEntries.length} people.</p><p>${new Date()}}</p>`);
-})
+const errorHandler = (error, req, res, next) => {
+  console.error(error.message);
+
+  next(error);
+};
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-const generateUniqueId = () => {
-    let newId
-
-    do{
-        newId = (Math.random() * 100000).toFixed(0);
-    }while(phonebookEntries.find(x => x.id == newId) !== undefined)
-
-    return newId;
-}
-
-let phonebookEntries = [
-  {
-    name: "Arto Hellas",
-    number: "040-123456",
-    id: 1,
-  },
-  {
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-    id: 2,
-  },
-  {
-    name: "Dan Abramov",
-    number: "12-43-234345",
-    id: 3,
-  },
-  {
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-    id: 4,
-  },
-];
