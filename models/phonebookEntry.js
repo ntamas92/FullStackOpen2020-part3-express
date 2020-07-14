@@ -1,10 +1,18 @@
 const mongoose = require("mongoose");
+const uniqueValidator = require("mongoose-unique-validator");
 
 const url = process.env.MONGODB_URI;
 console.log("connecting to", url);
 
+var mongooseConnectOptions = {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  useFindAndModify: false,
+  useCreateIndex: true,
+};
+
 mongoose
-  .connect(url, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify:false })
+  .connect(url, mongooseConnectOptions)
   .then((result) => {
     console.log("connected to MongoDB");
   })
@@ -13,9 +21,10 @@ mongoose
   });
 
 const phonebookEntrySchema = new mongoose.Schema({
-  name: String,
-  number: String,
+  name: { type: String, required: true, minlength: 3, unique: true },
+  number: { type: String, required: true, minlength: 8 },
 });
+phonebookEntrySchema.plugin(uniqueValidator);
 
 phonebookEntrySchema.set("toJSON", {
   transform: (document, returnedObject) => {

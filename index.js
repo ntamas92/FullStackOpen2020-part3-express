@@ -11,19 +11,20 @@ app.use(express.json());
 app.use(cors());
 
 app.use(
-  morgan(function (tokens, req, res) {
-    return [
-      tokens.method(req, res),
-      tokens.url(req, res),
-      tokens.status(req, res),
-      tokens.res(req, res, "content-length"),
-      "-",
-      tokens["response-time"](req, res),
-      "ms",
-      JSON.stringify(req.body),
-    ].join(" ");
-  })
-);
+    morgan(function (tokens, req, res) {
+      return [
+        tokens.method(req, res),
+        tokens.url(req, res),
+        tokens.status(req, res),
+        tokens.res(req, res, "content-length"),
+        "-",
+        tokens["response-time"](req, res),
+        "ms",
+        "req:",
+        JSON.stringify(req.body)
+      ].join(" ");
+    })
+  );
 
 app.get("/api/persons", (req, res) => {
   PhonebookEntry.find({})
@@ -47,7 +48,7 @@ app.delete("/api/persons/:id", (req, res) => {
     .catch((error) => next(error));
 });
 
-app.post("/api/persons", (req, res) => {
+app.post("/api/persons", (req, res, next) => {
   const body = req.body;
 
   if (!body.name || !body.number) {
@@ -89,9 +90,16 @@ app.get("/api/info", (req, res) => {
 });
 
 const errorHandler = (error, req, res, next) => {
-  console.error(error.message);
+    console.error(error.message);
 
-  next(error);
+    if (error.name === "CastError") {
+      return res.status(400).send({ error: "malformed id" });
+    }
+    else if(error.name === 'ValidationError'){
+      return res.status(400).json({error: error.message})
+    }
+  
+    next(error);
 };
 
 app.use(errorHandler);
