@@ -26,19 +26,19 @@ app.use(
     })
   );
 
-app.get("/api/persons", (req, res) => {
+app.get("/api/persons", (req, res, next) => {
   PhonebookEntry.find({})
     .then((result) => res.json(result))
     .catch((error) => next(error));
 });
 
-app.get("/api/persons/:id", (req, res) => {
+app.get("/api/persons/:id", (req, res, next) => {
   PhonebookEntry.findById(req.params.id)
     .then((result) => res.json(result))
     .catch((error) => next(error));
 });
 
-app.delete("/api/persons/:id", (req, res) => {
+app.delete("/api/persons/:id", (req, res, next) => {
   console.log(req.params.id);
   PhonebookEntry.findByIdAndRemove(req.params.id)
     .then((x) => {
@@ -71,7 +71,7 @@ app.post("/api/persons", (req, res, next) => {
     .catch((error) => next(error));
 });
 
-app.put("/api/persons/:id", (req, res) => {
+app.put("/api/persons/:id", (req, res, next) => {
   const body = req.body;
 
   const updatedEntry = {

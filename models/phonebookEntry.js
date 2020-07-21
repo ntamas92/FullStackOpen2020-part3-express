@@ -14,7 +14,7 @@ var mongooseConnectOptions = {
 mongoose
   .connect(url, mongooseConnectOptions)
   .then((result) => {
-    console.log("connected to MongoDB");
+    console.log("connected to MongoDB with result:", result);
   })
   .catch((error) => {
     console.log("error connecting to MongoDB:", error.message);
